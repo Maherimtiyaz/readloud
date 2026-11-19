@@ -1,0 +1,37 @@
+[project]
+name = "readloud"
+version = "0.1.0"
+description = "Free, offline, open-source text-to-speech reader. Your documents, read aloud, on your own machine."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "kokoro-onnx>=0.6.1",
+    "lameenc>=1.7.0",
+    "numpy>=1.26",
+    "pypdf>=5.0",
+    "soundfile>=0.12",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+# Live playback through your speakers (`readloud say` without -o).
+play = ["sounddevice>=0.5"]
+
+[project.scripts]
+readloud = "readloud.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27",
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: needs the real Kokoro model files (run `readloud download` first)"]

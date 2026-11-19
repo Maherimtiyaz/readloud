@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows first: it's our main target platform.
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: uv sync --python ${{ matrix.python }}
+
+      - name: Cache voice model
+        uses: actions/cache@v4
+        with:
+          path: ~/.readloud/models
+          key: kokoro-v1.0-int8
+
+      - name: Download voice model
+        run: uv run readloud download
+
+      - name: Tests (unit + real-model integration)
+        run: uv run pytest -v
+
+      - name: Benchmark
+        run: uv run readloud bench
+
+      - name: Smoke test the CLI
+        shell: bash
+        run: |
+          printf 'Hello from CI.\n\nThis file was read aloud on %s.' "${{ matrix.os }}" > smoke.txt
+          uv run readloud read smoke.txt -o smoke.mp3 --timings smoke.json
+          test -s smoke.mp3
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'windows-latest' && matrix.python == '3.13'
+        with:
+          name: smoke-audio-windows
+          path: smoke.mp3
